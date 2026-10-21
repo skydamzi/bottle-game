@@ -1,92 +1,115 @@
 using UnityEngine;
 
+[DefaultExecutionOrder(-30)]
 public class PlayerAimController : MonoBehaviour, IAimProvider
 {
     public FixedJoystick joystick;
     public Transform neckTransform;
     public float rotationSpeed = 15f;
-
-    public Quaternion FinalAimRotation { get; private set; }
+    public Quaternion FinalAimRotation { get; private set; } = Quaternion.identity;
     public bool IsInputActive { get; private set; }
-
-    private bool isAttacking;
-    private bool isCharging;
+    public bool IsAutoAimAligned => neckTransform != null && autoTarget != null &&
+        Quaternion.Angle(neckTransform.rotation, FinalAimRotation) <= 1f;
+    private bool isAttacking, isCharging;
     private Quaternion lockedAttackRotation;
+    private PlayerStats playerStats;
+    private PlayerMovement movement;
+    private Transform autoTarget;
+    private PlayerAutoTarget targeting;
 
     void Awake()
     {
-        if (neckTransform) FinalAimRotation = neckTransform.rotation;
+        playerStats = GetComponent<PlayerStats>();
+        movement = GetComponent<PlayerMovement>();
+        targeting = GetComponent<PlayerAutoTarget>();
+        if (neckTransform != null) FinalAimRotation = neckTransform.rotation;
+    }
 
+    void OnEnable()
+    {
+        if (joystick != null) joystick.TouchCancelled += OnTouchCancelled;
         PlayerEvents.OnPlayerAttackStarted += OnAttackStarted;
         PlayerEvents.OnPlayerAttackEnded += OnAttackEnded;
         PlayerEvents.OnFistChargeUpdate += OnFistChargeUpdate;
-        PlayerEvents.OnFistAttackReleased += OnFistAttackReleased;
         PlayerEvents.OnWeaponSwapped += OnWeaponSwapped;
-        PlayerEvents.OnPlayerAimReset += ResetAim;
+        PlayerEvents.OnPlayerAimReset += OnAimReset;
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
+        if (joystick != null) joystick.TouchCancelled -= OnTouchCancelled;
         PlayerEvents.OnPlayerAttackStarted -= OnAttackStarted;
         PlayerEvents.OnPlayerAttackEnded -= OnAttackEnded;
         PlayerEvents.OnFistChargeUpdate -= OnFistChargeUpdate;
-        PlayerEvents.OnFistAttackReleased -= OnFistAttackReleased;
         PlayerEvents.OnWeaponSwapped -= OnWeaponSwapped;
-        PlayerEvents.OnPlayerAimReset -= ResetAim;
+        PlayerEvents.OnPlayerAimReset -= OnAimReset;
+        isAttacking = isCharging = IsInputActive = false;
+        autoTarget = null;
     }
 
-    private void OnAttackStarted()
+    private void OnAttackStarted(PlayerStats player)
     {
+        if (player == null || player != playerStats) return;
         isAttacking = true;
-        // Lock the rotation at the moment the attack is initiated
         lockedAttackRotation = FinalAimRotation;
     }
-
-    private void OnAttackEnded()
+    private void OnAttackEnded(PlayerStats player) { if (player != null && player == playerStats) isAttacking = isCharging = false; }
+    private void OnFistChargeUpdate(PlayerStats player, float ratio) { if (player != null && player == playerStats) isCharging = true; }
+    private void OnWeaponSwapped(PlayerStats player, PlayerAttackController.WeaponMode mode) { if (player != null && player == playerStats) isCharging = false; }
+    private void OnAimReset(PlayerStats player) { if (player != null && player == playerStats) ResetAim(); }
+    private void OnTouchCancelled()
     {
-        isAttacking = false;
-        isCharging = false;
+        IsInputActive = false;
+        GetComponent<PlayerAttackController>()?.CancelAttack();
     }
 
-    private void OnFistChargeUpdate(float ratio) => isCharging = ratio > 0.1f;
-    private void OnFistAttackReleased(float ratio) => isCharging = false;
-    private void OnWeaponSwapped(PlayerAttackController.WeaponMode mode) => isCharging = false;
+    void Update()
+    {
+        IsInputActive = false;
+        if (movement != null && movement.IsSingleStick)
+        {
+            SetAutoTarget(targeting != null && targeting.HasTarget ? targeting.CurrentTarget : null);
+            return;
+        }
+        if (movement != null && !movement.CanReadLocalInput) return;
+        Vector2 dir = joystick != null ? joystick.Direction : Vector2.zero;
+        IsInputActive = dir.magnitude > 0.15f;
+        if (IsInputActive) SetDirection(dir);
+    }
+
+    public void SetAutoTarget(Transform target)
+    {
+        autoTarget = target;
+        IsInputActive = target != null;
+        if (target == null) return;
+        SetDirection(target.position - (neckTransform != null ? neckTransform.position : transform.position));
+    }
+
+    private void SetDirection(Vector2 direction)
+    {
+        if (direction.sqrMagnitude < 0.0001f) return;
+        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        FinalAimRotation = Quaternion.AngleAxis(angle - 90f, Vector3.forward);
+    }
 
     void LateUpdate()
     {
-        if (!joystick || !neckTransform) return;
-
-        Vector2 dir = new Vector2(joystick.Horizontal, joystick.Vertical);
-        IsInputActive = dir.magnitude > 0.15f;
-
-        if (IsInputActive)
+        if (neckTransform == null) return;
+        if (isAttacking) { neckTransform.rotation = lockedAttackRotation; return; }
+        bool hasAutoTarget = movement != null && movement.IsSingleStick && autoTarget != null;
+        if (hasAutoTarget)
         {
-            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-            FinalAimRotation = Quaternion.AngleAxis(angle - 90f, Vector3.forward);
+            SetDirection(autoTarget.position - neckTransform.position);
         }
-
-        if (isAttacking)
-        {
-            neckTransform.rotation = lockedAttackRotation;
-        }
-        else
-        {
-            // 조이스틱을 놓은 순간 기를 모으고 있었다면 정면으로 돌아가지 않도록 가드
-            if (!IsInputActive && isCharging)
-            {
-                neckTransform.rotation = FinalAimRotation; 
-            }
-            else
-            {
-                Quaternion target = IsInputActive ? FinalAimRotation : Quaternion.identity;
-                neckTransform.rotation = Quaternion.Slerp(neckTransform.rotation, target, rotationSpeed * Time.deltaTime);
-            }
-        }
+        Quaternion target = hasAutoTarget || IsInputActive || isCharging ? FinalAimRotation : Quaternion.identity;
+        neckTransform.rotation = Quaternion.Slerp(neckTransform.rotation, target, rotationSpeed * Time.deltaTime);
     }
 
     public void ResetAim()
     {
+        autoTarget = null;
+        IsInputActive = false;
         FinalAimRotation = Quaternion.identity;
-        if (neckTransform) neckTransform.rotation = Quaternion.identity;
+        if (neckTransform != null && (movement == null || !movement.IsSingleStick)) neckTransform.rotation = Quaternion.identity;
     }
 }

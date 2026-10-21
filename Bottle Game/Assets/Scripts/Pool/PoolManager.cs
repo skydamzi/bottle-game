@@ -15,11 +15,11 @@ public class PoolManager : MonoBehaviour
     public static PoolManager Instance;
 
     [Tooltip("게임 시작 전 풀 등록")]
-    public List<Pool> pools;
+    public List<Pool> pools = new List<Pool>();
 
     private Dictionary<GameObject, Queue<Poolable>> poolDictionary = new Dictionary<GameObject, Queue<Poolable>>();
     private Dictionary<GameObject, Transform> poolParents = new Dictionary<GameObject, Transform>();
-    private int totalActiveCount = 0;
+    private readonly HashSet<Poolable> activeObjects = new HashSet<Poolable>();
 
     void Awake()
     {
@@ -31,11 +31,13 @@ public class PoolManager : MonoBehaviour
         else 
         { 
             Destroy(gameObject); 
+            return;
         }
     }
 
     void Start()
     {
+        if (Instance != this || pools == null) return;
         foreach (Pool pool in pools)
         {
             PreparePool(pool.prefab, pool.size);
@@ -54,7 +56,7 @@ public class PoolManager : MonoBehaviour
 
         for (int i = 0; i < size; i++)
         {
-            CreateNewObject(prefab);
+            poolDictionary[prefab].Enqueue(CreateNewObject(prefab));
         }
     }
 
@@ -65,9 +67,9 @@ public class PoolManager : MonoBehaviour
         {
             poolable = newObj.AddComponent<Poolable>();
         }
-        poolable.sourcePrefab = prefab;
+        poolable.Initialize(prefab, this);
         newObj.SetActive(false);
-        poolDictionary[prefab].Enqueue(poolable);
+        poolable.SetLeased(false);
         return poolable;
     }
 
@@ -83,30 +85,36 @@ public class PoolManager : MonoBehaviour
         }
 
         // If the pool is empty, expand it by creating a new object.
-        Poolable objToGet = (poolDictionary[prefab].Count > 0) 
-            ? poolDictionary[prefab].Dequeue() 
-            : CreateNewObject(prefab);
+        Poolable objToGet = null;
+        while (poolDictionary[prefab].Count > 0 && objToGet == null)
+        {
+            Poolable candidate = poolDictionary[prefab].Dequeue();
+            if (candidate != null && !activeObjects.Contains(candidate)) objToGet = candidate;
+        }
+        if (objToGet == null) objToGet = CreateNewObject(prefab);
 
+        activeObjects.Add(objToGet);
+        objToGet.SetLeased(true);
         objToGet.transform.SetPositionAndRotation(position, rotation);
         objToGet.gameObject.SetActive(true);
-        totalActiveCount++;
         return objToGet;
     }
 
     public void ReturnToPool(GameObject prefab, Poolable poolable)
     {
-        if (prefab == null || !poolDictionary.ContainsKey(prefab)) 
+        if (poolable == null || poolable.manager != this || !activeObjects.Remove(poolable)) return;
+        poolable.SetLeased(false);
+        poolable.gameObject.SetActive(false);
+        if (prefab == null || prefab != poolable.sourcePrefab || !poolDictionary.ContainsKey(prefab))
         { 
             Destroy(poolable.gameObject); 
             return; 
         }
-        if (!poolable.gameObject.activeSelf) return;
-
-        poolable.gameObject.SetActive(false);
         poolable.transform.SetParent(poolParents[prefab]);
         poolDictionary[prefab].Enqueue(poolable);
-        totalActiveCount--;
     }
 
-    public int GetTotalActiveCount() => totalActiveCount;
+    internal void Forget(Poolable obj) => activeObjects.Remove(obj);
+    public int GetTotalActiveCount() => activeObjects.Count;
+    void OnDestroy() { if (Instance == this) Instance = null; }
 }

@@ -5,6 +5,14 @@ using UnityEngine.EventSystems;
 
 public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
+    public bool IsPointerDown { get; private set; }
+    public Vector2 PointerStartPosition { get; private set; }
+    public Vector2 PointerPosition { get; private set; }
+    public event System.Action<Vector2, float> TouchStarted;
+    public event System.Action<Vector2, float> TouchMoved;
+    public event System.Action TouchEnded;
+    public event System.Action TouchCancelled;
+    private int pointerId;
     public float Horizontal { get { return (snapX) ? SnapFloat(input.x, AxisOptions.Horizontal) : input.x; } }
     public float Vertical { get { return (snapY) ? SnapFloat(input.y, AxisOptions.Vertical) : input.y; } }
     public Vector2 Direction { get { return new Vector2(Horizontal, Vertical); } }
@@ -21,7 +29,7 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
         set { deadZone = Mathf.Abs(value); }
     }
 
-    public AxisOptions AxisOptions { get { return AxisOptions; } set { axisOptions = value; } }
+    public AxisOptions AxisOptions { get { return axisOptions; } set { axisOptions = value; } }
     public bool SnapX { get { return snapX; } set { snapX = value; } }
     public bool SnapY { get { return snapY; } set { snapY = value; } }
 
@@ -59,11 +67,25 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
 
     public virtual void OnPointerDown(PointerEventData eventData)
     {
-        OnDrag(eventData);
+        if (IsPointerDown) return;
+        IsPointerDown = true;
+        pointerId = eventData.pointerId;
+        PointerStartPosition = PointerPosition = eventData.position;
+        ReadPointer(eventData);
+        TouchStarted?.Invoke(Direction, Time.unscaledTime);
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (!IsPointerDown || eventData.pointerId != pointerId) return;
+        PointerPosition = eventData.position;
+        ReadPointer(eventData);
+        TouchMoved?.Invoke(Direction, Time.unscaledTime);
+    }
+
+    private void ReadPointer(PointerEventData eventData)
+    {
+        if (canvas == null || background == null || handle == null) return;
         cam = null;
         if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
             cam = canvas.worldCamera;
@@ -131,9 +153,36 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
 
     public virtual void OnPointerUp(PointerEventData eventData)
     {
-        input = Vector2.zero;
-        handle.anchoredPosition = Vector2.zero;
+        if (!IsPointerDown || eventData.pointerId != pointerId) return;
+        for (int i = 0; i < Input.touchCount; i++)
+        {
+            Touch touch = Input.GetTouch(i);
+            if (touch.fingerId == pointerId && touch.phase == TouchPhase.Canceled)
+            {
+                CancelInput();
+                return;
+            }
+        }
+        ResetInput();
+        TouchEnded?.Invoke();
     }
+
+    private void ResetInput()
+    {
+        IsPointerDown = false;
+        input = Vector2.zero;
+        if (handle != null) handle.anchoredPosition = Vector2.zero;
+    }
+
+    public void CancelInput()
+    {
+        ResetInput();
+        TouchCancelled?.Invoke();
+    }
+
+    protected virtual void OnDisable() => CancelInput();
+    void OnApplicationFocus(bool focused) { if (!focused) CancelInput(); }
+    void OnApplicationPause(bool paused) { if (paused) CancelInput(); }
 
     protected Vector2 ScreenPointToAnchoredPosition(Vector2 screenPosition)
     {

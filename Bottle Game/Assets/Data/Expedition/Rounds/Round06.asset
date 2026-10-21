@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 457ef2ef98b0410197eb6069ad17c2b3, type: 3}
+  m_Name: Round06
+  m_EditorClassIdentifier: 
+  roundId: round_06
+  displayName: "\uBCF4\uC2A4: \uAC15\uD654 \uC18C\uC8FC\uBCD1 (\uD14C\uC2A4\uD2B8)"
+  roundType: 2
+  clearCondition: 0
+  enemies:
+  - prefab: {fileID: 1750836346632957443, guid: eeaa9e1c09cc7d44fbe0a6efe3462066, type: 3}
+    offset: {x: 0, y: 3.8}
+    count: 1
+    required: 1
+    healthMultiplier: 5
+    damageMultiplier: 1.3
+    speedMultiplier: 0.85
+  rewardTableId: default
+  currencyReward: 30
+  nextRoutes: []
