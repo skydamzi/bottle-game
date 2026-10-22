@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 457ef2ef98b0410197eb6069ad17c2b3, type: 3}
+  m_Name: Round05
+  m_EditorClassIdentifier: 
+  roundId: round_05
+  displayName: "\uD2B9\uC218: \uBCD1 \uBB34\uB9AC \uC18C\uD0D5"
+  roundType: 1
+  clearCondition: 0
+  enemies:
+  - prefab: {fileID: 1750836346632957443, guid: eeaa9e1c09cc7d44fbe0a6efe3462066, type: 3}
+    offset: {x: -1.5, y: 3.4}
+    count: 2
+    required: 1
+    healthMultiplier: 1.05
+    damageMultiplier: 0.9
+    speedMultiplier: 1
+  - prefab: {fileID: 1750836346632957443, guid: eeaa9e1c09cc7d44fbe0a6efe3462066, type: 3}
+    offset: {x: 1.6, y: 2.7}
+    count: 2
+    required: 1
+    healthMultiplier: 0.85
+    damageMultiplier: 0.9
+    speedMultiplier: 1.05
+  rewardTableId: default
+  currencyReward: 20
+  nextRoutes:
+  - {fileID: 11400000, guid: 9ece9d16ea2eac94da526918095ec33e, type: 2}
+  - {fileID: 11400000, guid: 374e07eb1c86b674c95dc71f00e41563, type: 2}
+  - {fileID: 11400000, guid: fd2ee45e3bf534549acd6ce6ecc02ab9, type: 2}

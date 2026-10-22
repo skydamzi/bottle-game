@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72e480c7a2d448aaaab6ea42c7cb48fa, type: 3}
+  m_Name: shop
+  m_EditorClassIdentifier: 
+  routeId: shop
+  displayName: "\uACE0\uCCA0 \uC0C1\uC810"
+  description: "\uACE0\uCCA0 10\uAC1C\uB85C \uCD5C\uB300 HP 40% \uD68C\uBCF5\uC744
+    \uD55C \uBC88 \uAD6C\uB9E4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  routeType: 3
+  healFraction: 0.4
+  cost: 10
+  attackMultiplier: 1.4
+  eventOutcomes:
+  - outcomeId: scrap
+    description: "\uD3D0\uD488 \uB354\uBBF8 \uBC1C\uACAC: \uACE0\uCCA0 15\uAC1C\uB97C
+      \uC5BB\uC5C8\uC2B5\uB2C8\uB2E4."
+    weight: 1
+    currency: 15
+    healFraction: 0
+  - outcomeId: water
+    description: "\uAE68\uB057\uD55C \uBB3C \uBC1C\uACAC: \uCD5C\uB300 HP\uC758 20%\uB97C
+      \uD68C\uBCF5\uD588\uC2B5\uB2C8\uB2E4."
+    weight: 1
+    currency: 0
+    healFraction: 0.2

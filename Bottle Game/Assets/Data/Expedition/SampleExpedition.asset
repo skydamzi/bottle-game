@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf4213994773423e87af7ba55de5e70f, type: 3}
+  m_Name: SampleExpedition
+  m_EditorClassIdentifier: 
+  rounds:
+  - {fileID: 11400000, guid: e36fd3446f7f89040b9ef30d783602a7, type: 2}
+  - {fileID: 11400000, guid: 7c2c16706330b9c4383d787df1c47ef7, type: 2}
+  - {fileID: 11400000, guid: 42e9d99550184024c929d9049efc8e14, type: 2}
+  - {fileID: 11400000, guid: 763eadfda6e4386428b890e34c88bae2, type: 2}
+  - {fileID: 11400000, guid: ecb3b4fc33441e34587eb930f09a5225, type: 2}
+  - {fileID: 11400000, guid: 412e4de43136100438bf7044259eca59, type: 2}
+  artifactCatalog: {fileID: 11400000, guid: cdab4dafa5edeaf488df27e23d47423c, type: 2}
+  rewardTables:
+  - tableId: default
+    catalog: {fileID: 11400000, guid: cdab4dafa5edeaf488df27e23d47423c, type: 2}
+  returnSceneName: MainMenu

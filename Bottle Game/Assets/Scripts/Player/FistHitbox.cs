@@ -7,42 +7,54 @@ public class FistHitbox : MonoBehaviour, IDamageDealer
     private Collider2D _collider;
     private PlayerStats _stats;
 
-    private readonly List<IDamageable> _hitTargets = new List<IDamageable>();
+    private readonly HashSet<int> _hitTargets = new HashSet<int>();
+    private bool _active;
+    private int _activationVersion;
 
     void Awake()
     {
         _collider = GetComponent<Collider2D>();
         _stats = GetComponentInParent<PlayerStats>();
-        _collider.enabled = false;
+        if (_collider != null) _collider.enabled = false;
     }
 
     public float GetDamage() => _currentDamage;
-    public GameObject GetOwner() => _stats.gameObject;
+    public GameObject GetOwner() => _stats != null ? _stats.gameObject : gameObject;
 
     public void ActivateHitbox(float damage)
     {
-        _currentDamage = damage;
+        int activation = ++_activationVersion;
+        RunBuild build = _stats != null ? _stats.RunBuild : null;
+        RunAttackSnapshot attack = build != null ? build.CreateAttack(damage, false) : default;
+        if (activation != _activationVersion || (build != null && !build.IsAttackCurrent(attack))) return;
+        _currentDamage = build != null ? attack.Damage : damage;
         _hitTargets.Clear();
-        _collider.enabled = true;
+        _active = true;
+        if (_collider != null) _collider.enabled = true;
     }
 
     public void DeactivateHitbox()
     {
-        _collider.enabled = false;
+        _activationVersion++;
+        _active = false;
+        if (_collider != null) _collider.enabled = false;
         _hitTargets.Clear();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (!_active || !isActiveAndEnabled) return;
         if (other.TryGetComponent<IDamageable>(out var target))
         {
-            if (other.gameObject == GetOwner()) return;
-            if (_hitTargets.Contains(target)) return;
-
-            _hitTargets.Add(target);     
+            if (other.transform.IsChildOf(GetOwner().transform)) return;
+            MonsterStats monster = other.GetComponentInParent<MonsterStats>();
+            int targetId = monster != null ? monster.GetInstanceID() : ((Component)target).GetInstanceID();
+            if (!_hitTargets.Add(targetId)) return;
             target.OnDamage(GetDamage(), this);
             
             Debug.Log($"{other.name}에게 핵펀치! 데미지: {GetDamage()}");
         }
     }
+
+    void OnDisable() => DeactivateHitbox();
 }
